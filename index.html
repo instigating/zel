@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zelle Pay - Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0a0a0a] text-zinc-100 font-sans antialiased min-h-screen p-4 sm:p-8">
+
+  <div class="max-w-2xl mx-auto space-y-6">
+    
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800/80 backdrop-blur">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-amber-400 rounded-xl flex items-center justify-center font-black text-black text-xl shadow-lg shadow-amber-400/20">⚡</div>
+        <div>
+          <h1 class="font-extrabold text-lg tracking-tight text-white">ZELLE <span class="text-amber-400">PAY</span></h1>
+          <p class="text-xs text-zinc-500 font-mono">Interactive Demo</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 w-full sm:w-auto">
+        <span class="text-xs text-zinc-400 whitespace-nowrap">Switch User:</span>
+        <select id="userSelect" class="bg-zinc-800 border border-zinc-700 text-xs font-medium text-amber-300 rounded-lg p-2.5 focus:outline-none focus:border-amber-400 w-full sm:w-auto"></select>
+      </div>
+    </header>
+
+    <!-- Balance Card -->
+    <div class="relative overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-950 p-6 rounded-3xl border border-zinc-800/80 shadow-2xl">
+      <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-400/5 rounded-full blur-2xl pointer-events-none"></div>
+      <p class="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Available Balance</p>
+      <div class="flex items-baseline space-x-1 mt-2">
+        <span id="displayBalance" class="text-4xl sm:text-5xl font-black text-white tracking-tight">$0.00</span>
+      </div>
+      <div class="mt-4 pt-4 border-t border-zinc-800/60 flex flex-wrap gap-4 text-xs text-zinc-400 font-mono">
+        <span>Email: <strong id="displayEmail" class="text-zinc-200">...</strong></span>
+        <span>Phone: <strong id="displayPhone" class="text-zinc-200">...</strong></span>
+      </div>
+    </div>
+
+    <!-- Transfer Form -->
+    <div class="bg-zinc-900/80 border border-zinc-800 p-6 rounded-3xl shadow-xl space-y-5">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <!-- Send Icon -->
+          <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+          <span>Send Money</span>
+        </h2>
+        <span class="text-[10px] bg-amber-400/10 text-amber-400 border border-amber-400/20 px-2 py-0.5 rounded-full font-medium">Instant</span>
+      </div>
+
+      <!-- Alerts -->
+      <div id="alertBox" class="hidden p-4 rounded-2xl text-sm flex items-center gap-3">
+        <span id="alertMessage"></span>
+      </div>
+
+      <form id="transferForm" class="space-y-4">
+        <div>
+          <label class="block text-xs uppercase font-bold tracking-wider text-zinc-400 mb-2">Recipient Contact</label>
+          <input type="text" id="recipientInput" required placeholder="e.g. sarah@example.com or 555-0102" class="w-full bg-zinc-950/80 border border-zinc-800 rounded-xl p-3.5 text-sm text-white focus:outline-none focus:border-amber-400 transition">
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase font-bold tracking-wider text-zinc-400 mb-2">Amount ($)</label>
+          <input type="number" step="0.01" min="0.01" id="amountInput" required placeholder="0.00" class="w-full bg-zinc-950/80 border border-zinc-800 rounded-xl p-3.5 text-2xl font-black text-amber-400 focus:outline-none focus:border-amber-400 transition">
+        </div>
+
+        <div>
+          <label class="block text-xs uppercase font-bold tracking-wider text-zinc-400 mb-2">Note (Optional)</label>
+          <input type="text" id="noteInput" placeholder="What's this transfer for?" class="w-full bg-zinc-950/80 border border-zinc-800 rounded-xl p-3.5 text-sm text-white focus:outline-none focus:border-amber-400 transition">
+        </div>
+
+        <button type="submit" id="submitBtn" class="w-full bg-amber-400 hover:bg-amber-300 text-black font-extrabold py-3.5 rounded-xl transition duration-200 shadow-lg shadow-amber-400/10">
+          Send Money Now
+        </button>
+      </form>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="bg-zinc-900/80 border border-zinc-800 p-6 rounded-3xl shadow-xl space-y-4">
+      <h3 class="text-base font-bold text-white flex items-center justify-between">
+        <span>Recent Activity</span>
+        <span class="text-xs font-normal text-zinc-500">Live Updates</span>
+      </h3>
+      <div id="activityLog" class="divide-y divide-zinc-800/60">
+        <!-- Transactions injected here via JS -->
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // In-Memory Database
+    let users = [
+      { id: "1", name: "Alex Johnson", email: "alex@example.com", phone: "555-0101", balance: 1450.00 },
+      { id: "2", name: "Sarah Parker", email: "sarah@example.com", phone: "555-0102", balance: 820.50 },
+      { id: "3", name: "Michael Scott", email: "michael@example.com", phone: "555-0103", balance: 310.00 }
+    ];
+    let transactions = [
+      { id: "tx-1", senderId: "2", senderName: "Sarah Parker", recipientName: "Alex Johnson", amount: 150.00, note: "Dinner split", time: "08:30 PM" }
+    ];
+    let currentUserId = "1";
+
+    const elements = {
+      userSelect: document.getElementById('userSelect'),
+      displayBalance: document.getElementById('displayBalance'),
+      displayEmail: document.getElementById('displayEmail'),
+      displayPhone: document.getElementById('displayPhone'),
+      activityLog: document.getElementById('activityLog'),
+      alertBox: document.getElementById('alertBox'),
+      alertMessage: document.getElementById('alertMessage'),
+      form: document.getElementById('transferForm'),
+      submitBtn: document.getElementById('submitBtn')
+    };
+
+    function init() {
+      // Populate dropdown
+      elements.userSelect.innerHTML = users.map(u => `<option value="${u.id}">${u.name} ($${u.balance.toFixed(2)})</option>`).join('');
+      elements.userSelect.addEventListener('change', (e) => {
+        currentUserId = e.target.value;
+        elements.alertBox.classList.add('hidden');
+        render();
+      });
+      
+      elements.form.addEventListener('submit', handleTransfer);
+      render();
+    }
+
+    function render() {
+      const user = users.find(u => u.id === currentUserId);
+      elements.displayBalance.innerText = '$' + user.balance.toLocaleString('en-US', {minimumFractionDigits: 2});
+      elements.displayEmail.innerText = user.email;
+      elements.displayPhone.innerText = user.phone;
+      
+      // Update dropdown text to reflect new balances
+      Array.from(elements.userSelect.options).forEach(opt => {
+        const u = users.find(user => user.id === opt.value);
+        opt.text = `${u.name} ($${u.balance.toFixed(2)})`;
+      });
+
+      // Render transactions
+      const userTxs = transactions.filter(t => t.senderName === user.name || t.recipientName === user.name);
+      if (userTxs.length === 0) {
+        elements.activityLog.innerHTML = `<p class="text-xs text-zinc-500 py-4 text-center">No transactions recorded yet.</p>`;
+      } else {
+        elements.activityLog.innerHTML = userTxs.map(t => {
+          const isSender = t.senderName === user.name;
+          const color = isSender ? 'text-red-400' : 'text-emerald-400';
+          const sign = isSender ? '-' : '+';
+          const title = isSender ? `To ${t.recipientName}` : `From ${t.senderName}`;
+          return `
+            <div class="py-3.5 flex justify-between items-center">
+              <div>
+                <p class="text-sm font-semibold text-zinc-200">${title}</p>
+                <p class="text-xs text-zinc-500 mt-0.5">${t.note || 'Transfer'} • ${t.time}</p>
+              </div>
+              <div class="text-base font-bold ${color}">${sign}$${t.amount.toFixed(2)}</div>
+            </div>`;
+        }).join('');
+      }
+    }
+
+    function showAlert(msg, isError = false) {
+      elements.alertBox.classList.remove('hidden', 'bg-emerald-950/60', 'border-emerald-800/60', 'text-emerald-300', 'bg-red-950/60', 'border-red-800/60', 'text-red-300');
+      elements.alertBox.classList.add(isError ? 'bg-red-950/60' : 'bg-emerald-950/60', isError ? 'border-red-800/60' : 'border-emerald-800/60', isError ? 'text-red-300' : 'text-emerald-300');
+      elements.alertMessage.innerText = msg;
+    }
+
+    function handleTransfer(e) {
+      e.preventDefault();
+      elements.submitBtn.disabled = true;
+      elements.submitBtn.innerText = "Processing...";
+      
+      setTimeout(() => {
+        const amount = parseFloat(document.getElementById('amountInput').value);
+        const contact = document.getElementById('recipientInput').value.trim().toLowerCase();
+        const note = document.getElementById('noteInput').value;
+        const sender = users.find(u => u.id === currentUserId);
+        const recipient = users.find(u => u.email.toLowerCase() === contact || u.phone === contact);
+
+        elements.submitBtn.disabled = false;
+        elements.submitBtn.innerText = "Send Money Now";
+
+        if (!recipient) return showAlert("Recipient not found. Try sarah@example.com", true);
+        if (recipient.id === sender.id) return showAlert("You cannot send money to yourself.", true);
+        if (amount > sender.balance) return showAlert("Insufficient funds.", true);
+
+        // Update balances
+        sender.balance -= amount;
+        recipient.balance += amount;
+
+        // Log transaction
+        transactions.unshift({
+          id: 'tx-' + Date.now(),
+          senderId: sender.id,
+          senderName: sender.name,
+          recipientName: recipient.name,
+          amount: amount,
+          note: note,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+
+        elements.form.reset();
+        showAlert(`Successfully sent $${amount.toFixed(2)} to ${recipient.name}!`);
+        render();
+      }, 600); // Fake loading delay for realism
+    }
+
+    init();
+  </script>
+</body>
+</html>
